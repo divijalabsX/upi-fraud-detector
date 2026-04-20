@@ -11,14 +11,6 @@
 #   GET  /health       ← server health check
 # ============================================================
 
-# ── Homepage ───────────────────────────────────────────────────
-@app.route("/")
-def home():
-    return {
-        "message": "UPI Fraud Detection API is live 🚀",
-        "endpoints": ["/health", "/analyze"]
-    }
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from model import FraudDetector
@@ -40,6 +32,13 @@ agent    = AlertAgent()
 print("🚀 UPI Fraud Detection API is running!")
 print("   Endpoints: /analyze  /history  /stats  /health")
 
+# ── Home route ───────────────────────────────────────────────
+@app.route("/")
+def home():
+    return {
+        "message": "UPI Fraud Detection API is live 🚀",
+        "endpoints": ["/health", "/analyze"]
+    }
 
 # ── Endpoint 1: Analyze a transaction ─────────────────────────
 from flask import request, jsonify
