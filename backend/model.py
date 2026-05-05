@@ -116,25 +116,23 @@ class FraudDetector:
 
         # decision_function: more negative = more anomalous
         raw_score = self.model.decision_function(X)[0]
-        
-                # decision_function: more negative = more anomalous
-        raw_score = self.model.decision_function(X)[0]
 
         # Convert raw anomaly score → usable risk
-        risk_score = max(0, -raw_score)
+        # Normalize raw_score into usable range
+        risk_score = 1 / (1 + np.exp(raw_score))   # sigmoid transformation
 
         # 🔥 Rule-based boosts
         if transaction.get("amount", 0) > 20000:
             risk_score += 0.4
 
         if transaction.get("hour_of_day", 12) < 5:
-            risk_score += 0.3
+            risk_score += 0.35
 
         if transaction.get("is_new_device", 0):
-            risk_score += 0.2
+            risk_score += 0.3
 
         if transaction.get("is_new_location", 0):
-            risk_score += 0.2
+            risk_score += 0.3
 
         if transaction.get("txn_per_hour", 1) > 5:
             risk_score += 0.2
