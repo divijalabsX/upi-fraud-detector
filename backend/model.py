@@ -114,6 +114,8 @@ class FraudDetector:
         # Isolation Forest: -1 = anomaly, +1 = normal
         label = self.model.predict(X)[0]
 
+        raw_score = self.model.decision_function(X)[0]
+
         # ML score
         ml_score = 1 / (1 + np.exp(raw_score))
 
