@@ -114,30 +114,29 @@ class FraudDetector:
         # Isolation Forest: -1 = anomaly, +1 = normal
         label = self.model.predict(X)[0]
 
-        # decision_function: more negative = more anomalous
-        raw_score = self.model.decision_function(X)[0]
+        # ML score
+        ml_score = 1 / (1 + np.exp(raw_score))
 
-        # Convert raw anomaly score → usable risk
-        # Normalize raw_score into usable range
-        risk_score = 1 / (1 + np.exp(raw_score))   # sigmoid transformation
+        # Rule score
+        rule_score = 0
 
-        # 🔥 Rule-based boosts
         if transaction.get("amount", 0) > 20000:
-            risk_score += 0.4
+           rule_score += 0.4
 
         if transaction.get("hour_of_day", 12) < 5:
-            risk_score += 0.35
+           rule_score += 0.3
 
         if transaction.get("is_new_device", 0):
-            risk_score += 0.3
+           rule_score += 0.3
 
         if transaction.get("is_new_location", 0):
-            risk_score += 0.3
+           rule_score += 0.3
 
         if transaction.get("txn_per_hour", 1) > 5:
-            risk_score += 0.2
+           rule_score += 0.2
 
-        # Clamp
+        # FINAL score
+        risk_score = max(ml_score, rule_score)
         risk_score = float(np.clip(risk_score, 0, 1))
 
         # Determine risk level
