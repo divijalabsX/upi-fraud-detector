@@ -62,8 +62,8 @@ dashboard/
 * Real transaction dataset training
 
 #  Deployment
-Backend deployed on Render.
-Frontend runs using Streamlit.
+* Backend deployed on Render.
+* Frontend runs using Streamlit.
 
 # Author
 Divija Jain
