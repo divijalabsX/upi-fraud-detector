@@ -34,18 +34,18 @@ ML-powered fraud detection system for detecting suspicious UPI transactions usin
 #  Project Structure
 
 backend/
- ├── app.py
- ├── model.py
- ├── alert_agent.py
- └── transaction_logger.py
+ ── app.py
+ ── model.py
+ ── alert_agent.py
+ ── transaction_logger.py
 
 dashboard/
- └── streamlit_app.py
+ ── streamlit_app.py
 
-fraud_model.pkl
-scaler.pkl
-requirements.txt
-README.md
+ | fraud_model.pkl
+ | scaler.pkl
+ | requirements.txt
+ | README.md
 
 # Example Risk Factors
 * Large transaction amount
