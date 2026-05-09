@@ -17,12 +17,19 @@ ML-powered fraud detection system for detecting suspicious UPI transactions usin
 * REST API endpoints
 
 #  Tech Stack
-# Backend                      # Frontend                   # Deployment
-* Python                       * Streamlit                  * Render
-* Flask                                                     * GitHub
+# Backend
+* Python
+* Flask
 * Scikit-learn
 * NumPy
 * Pandas
+
+# Frontend
+* Streamlit
+
+# Deployment
+* Render
+* Github
 
 #  Project Structure
 
