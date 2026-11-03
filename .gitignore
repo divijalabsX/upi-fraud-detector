@@ -179,3 +179,9 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Runtime transaction history
+data/transaction_log.json
+data/transaction_log_backup.json
+data/transaction_log_recovered.json
+data/transaction_log_before_git_cleanup.json
