@@ -101,15 +101,47 @@ if "Check" in page:
 
         with st.spinner("🤖 AI is analyzing..."):
             try:
-                r = requests.post(f"{API_URL}/analyze", json=payload, timeout=10)
+                r = requests.post(
+                    f"{API_URL}/analyze",
+                    json=payload,
+                    timeout=10
+                )
+
+                r.raise_for_status()
                 data = r.json()
-            except Exception as e:
-                st.error(f"❌ Could not reach API: {e}")
+
+                if data.get("status") != "analyzed":
+                    st.error(f"Analysis failed: {data}")
+                    st.stop()
+
+                result = data.get("fraud_result", data)
+
+                if not isinstance(result, dict):
+                    st.error("Unexpected API response format.")
+                    st.stop()
+
+                if "risk_level" not in result or "risk_score" not in result:
+                    st.error(f"Missing risk information in API response: {data}")
+                    st.stop()
+
+            except requests.exceptions.RequestException as e:
+                st.error(f"Could not reach API: {e}")
                 st.stop()
 
-        level = data.get("risk_level", "LOW")
-        score = int(data.get("risk_score", 0) * 100)
-        reasons = data.get("reasons", [])
+            except ValueError:
+                st.error("API returned an invalid JSON response.")
+                st.stop()
+
+        level = str(result["risk_level"]).upper()
+        score = round(float(result["risk_score"]) * 100)
+        reasons = result.get("reasons", [])
+
+        # Extract the actual fraud analysis result
+        result = data.get("fraud_result", data)
+
+        level = result.get("risk_level", "LOW")
+        score = round(float(result.get("risk_score", 0)) * 100)
+        reasons = result.get("reasons", [])
 
         css_class = f"alert-{level.lower()}"
 
