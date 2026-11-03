@@ -46,56 +46,89 @@ from flask import request, jsonify
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
-        if not data:
-            return jsonify({"error": "No JSON received"}), 400
+        if not isinstance(data, dict):
+            return jsonify({
+                "error": "A valid JSON object is required."
+            }), 400
 
-        # Extract fields safely
+        # Validate required transaction input
+        if "amount" not in data:
+            return jsonify({
+                "error": "Missing required field: amount"
+            }), 400
+
+        # Extract and normalize transaction fields
         txn = {
-            "amount": data.get("amount", 0),
-            "hour_of_day": data.get("hour_of_day", 12),
-            "is_new_device": data.get("is_new_device", 0),
-            "is_new_location": data.get("is_new_location", 0),
-            "txn_per_hour": data.get("txn_per_hour", 1),
-            "amount_zscore": data.get("amount_zscore", 0.0),
-            "description": data.get("description", "unknown")
+            "user_id": str(data.get("user_id", "anonymous")),
+            "amount": float(data["amount"]),
+            "hour_of_day": int(data.get("hour_of_day", 12)),
+            "is_new_device": int(data.get("is_new_device", 0)),
+            "is_new_location": int(data.get("is_new_location", 0)),
+            "txn_per_hour": int(data.get("txn_per_hour", 1)),
+            "amount_zscore": float(data.get("amount_zscore", 0.0)),
+            "payee": str(data.get("payee", data.get("payee_name", "Unknown"))),
+            "upi_id": str(data.get("upi_id", "unknown@upi")),
         }
 
-        result = detector.predict(txn)
+        # Basic input validation
+        if txn["amount"] < 0:
+            return jsonify({
+                "error": "Amount cannot be negative."
+            }), 400
 
-        return jsonify(result)
+        if not 0 <= txn["hour_of_day"] <= 23:
+            return jsonify({
+                "error": "hour_of_day must be between 0 and 23."
+            }), 400
 
-    except Exception as e:
-        return jsonify({"error": str(e)})
-    
-    # ── Enrich with live user stats ───────────────────────────
-    user_stats = compute_user_stats(
-        data["user_id"], float(data["amount"])
-    )
-    data.update(user_stats)
+        for field in ("is_new_device", "is_new_location"):
+            if txn[field] not in (0, 1):
+                return jsonify({
+                    "error": f"{field} must be 0 or 1."
+                }), 400
 
-    # ── Default missing fields ────────────────────────────────
-    data.setdefault("hour_of_day",     datetime.datetime.now().hour)
-    data.setdefault("is_new_device",   0)
-    data.setdefault("is_new_location", 0)
-    data.setdefault("payee",           "Unknown")
-    data.setdefault("upi_id",          "unknown@upi")
+        if txn["txn_per_hour"] < 1:
+            return jsonify({
+                "error": "txn_per_hour must be at least 1."
+            }), 400
 
-    # ── Run detection ─────────────────────────────────────────
-    fraud_result = detector.predict(data)
-    alert        = agent.generate_alert(data, fraud_result)
+        # Use supplied features for this prototype.
+        # Do not silently overwrite the input with historical features
+        # until feature computation is deliberately integrated.
+        fraud_result = detector.predict(txn)
 
-    # ── Log the transaction ───────────────────────────────────
-    save_transaction(data, fraud_result)
+        # Normalize the detector response for JSON serialization
+        fraud_result = {
+            "is_fraud": bool(fraud_result["is_fraud"]),
+            "risk_score": float(fraud_result["risk_score"]),
+            "risk_level": str(fraud_result["risk_level"]),
+            "reasons": [
+                str(reason)
+                for reason in fraud_result.get("reasons", [])
+            ]
+        }
 
-    # ── Respond ───────────────────────────────────────────────
-    return jsonify({
-        "status":       "analyzed",
-        "transaction":  data,
-        "fraud_result": fraud_result,
-        "alert":        alert,
-    }), 200
+        # Save the transaction before returning success
+        save_transaction(txn, fraud_result)
+
+        return jsonify({
+            "status": "analyzed",
+            "transaction": txn,
+            "fraud_result": fraud_result
+        }), 200
+
+    except (TypeError, ValueError) as e:
+        return jsonify({
+            "error": f"Invalid transaction input: {str(e)}"
+        }), 400
+
+    except Exception:
+        app.logger.exception("Transaction analysis failed")
+        return jsonify({
+            "error": "Transaction analysis failed. Check backend logs."
+        }), 500
 
 
 # ── Endpoint 2: Transaction history ───────────────────────────

@@ -17,7 +17,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-API_URL = "https://upi-fraud-detector-lq5p.onrender.com"
+import os
+
+API_URL = os.getenv(
+    "FRAUD_API_URL",
+    "http://127.0.0.1:5000"
+).rstrip("/")
 
 # ── Custom CSS ────────────────────────────────────────────────
 st.markdown("""

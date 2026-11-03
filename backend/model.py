@@ -138,7 +138,7 @@ class FraudDetector:
            rule_score += 0.2
 
         # FINAL score
-        risk_score = max(ml_score, rule_score)
+        risk_score = max(rule_score,ml_score*0.7)
         risk_score = float(np.clip(risk_score, 0, 1))
 
         # Determine risk level
@@ -151,18 +151,21 @@ class FraudDetector:
         else:
             risk_level = "LOW"
 
-        is_fraud = (label == -1) or (risk_score >= 0.65)
+        # Convert NumPy values to native Python types
+        is_anomaly = bool(label == -1)
+        rule_flag = bool(risk_score >= 0.65)
+
+        is_fraud = bool(is_anomaly or rule_flag)
 
         reasons = self._explain(transaction, risk_score)
 
         return {
-            "is_fraud":   is_fraud,
-            "risk_score": round(risk_score, 3),
-            "risk_level": risk_level,
-            "reasons":    reasons
+            "is_fraud": is_fraud,
+            "risk_score": float(round(risk_score, 3)),
+            "risk_level": str(risk_level),
+            "reasons": [str(reason) for reason in reasons]
         }
-
-    # ── Rule-based explanation ─────────────────────────────────
+        # ── Rule-based explanation ─────────────────────────────────
     def _explain(self, txn: dict, score: float) -> list:
         reasons = []
         amount = float(txn.get("amount", 0))
@@ -192,7 +195,6 @@ class FraudDetector:
             reasons.append("ML model flagged unusual pattern")
 
         return reasons
-
     # ── Persist ────────────────────────────────────────────────
     def save(self):
         with open(self.MODEL_PATH,  "wb") as f:
